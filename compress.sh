@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
 shopt -s nullglob nocaseglob
 
-# Remove incomplete files
+readonly V_CODEC="libx265"
+readonly CRF="23"
+readonly PRESET="slow"
+
 for pfile in *-p.mp4; do
     rm -fv "$pfile"
 done
 
 for file in *.mp4 *.mov; do
-    # Skip already processed files
-    [[ "$file" =~ -c\.mp4$ ]] && continue
-    [[ "$file" =~ -p\.mp4$ ]] && continue
+    [[ "$file" =~ -(c|p)\.mp4$ ]] && continue
 
     base="${file%.*}"
-
     pfile="${base}-p.mp4"
     cfile="${base}-c.mp4"
 
@@ -21,11 +22,10 @@ for file in *.mp4 *.mov; do
 
     echo "=== Processing: $file ==="
 
-    # Run ffmpeg with better defaults
     if ffmpeg -hide_banner -loglevel error -stats \
         -i "$file" \
         -map 0 \
-        -c:v libx265 -crf 23 -preset slow \
+        -c:v "$V_CODEC" -crf "$CRF" -preset "$PRESET" \
         -c:a aac -b:a 128k \
         -movflags +faststart \
         "$pfile"; then
