@@ -2,9 +2,6 @@
 
 shopt -s nullglob nocaseglob
 
-echo "=== Step 2: Combining all normalized files ==="
-
-# Create concat list (only -c.mp4 files)
 > files.txt
 for f in *-c.mp4; do
     echo "file '$f'" >> files.txt
@@ -17,11 +14,14 @@ fi
 
 echo "Concatenating $(wc -l < files.txt) clips into $FINAL_OUTPUT..."
 
-if ffmpeg -f concat -safe 0 -i files.txt -c copy "$FINAL_OUTPUT"; then
-    echo "Success! Final video created: $FINAL_OUTPUT"
-    exit 0
+if ! ffmpeg -hide_banner -loglevel error -stats \
+    -f concat -safe 0 -i "$list_file" \
+    -c copy \
+    "$FINAL_OUTPUT"; then
+
+    echo "Concatenation failed!"
+    exit 1
 fi
 
-echo "Concatenation failed!"
-exit 1
-
+echo "Success! Final video created: $FINAL_OUTPUT"
+exit 0

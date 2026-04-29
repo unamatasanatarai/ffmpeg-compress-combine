@@ -21,18 +21,19 @@ for file in *.mp4 *.mov; do
 
     echo "=== Processing: $file ==="
 
-    if ffmpeg -i "$file" \
-        -c:v libx265 \
-        -crf 23 \
-        -preset slow \
-        -c:a aac \
-        -b:a 128k \
+    # Run ffmpeg with better defaults
+    if ffmpeg -hide_banner -loglevel error -stats \
+        -i "$file" \
+        -map 0 \
+        -c:v libx265 -crf 23 -preset slow \
+        -c:a aac -b:a 128k \
+        -movflags +faststart \
         "$pfile"; then
 
-        mv "$pfile" "$cfile"
+        mv -f -- "$pfile" "$cfile"
         echo "Completed: $cfile"
     else
         echo "Failed: $file"
-        rm -f "$pfile"
+        rm -f -- "$pfile"
     fi
 done
