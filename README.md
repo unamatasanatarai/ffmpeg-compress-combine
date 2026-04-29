@@ -52,4 +52,4 @@ After compression, merge the resulting `-c.mp4` files into a single video. You c
 *Note: If no argument is provided, the script defaults to `combined_video.mp4`.*
 
 ## License
-[cite_start]This project is licensed under the **GNU General Public License v2**[cite: 1]. [cite_start]You are free to distribute and modify this software under the terms of the license, provided that recipients receive the same rights and source code access[cite: 7, 10, 11].
+This project is licensed under the **GNU General Public License v2**.
