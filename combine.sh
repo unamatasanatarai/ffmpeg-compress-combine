@@ -1,33 +1,54 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
 shopt -s nullglob nocaseglob
 
-readonly LIST_FILE="files.txt"
-readonly FINAL_OUTPUT="${1:-combined_video.mp4}"
+list_file='files.txt'
+final_output=${1:-combined_video.mp4}
 
-trap 'rm -f "$LIST_FILE"' EXIT
+files=(*-c.mp4)
 
-: > "$LIST_FILE"
+if (( ${#files[@]} == 0 )); then
+    printf 'Error: No normalized files (*-c.mp4) found.\n' >&2
+    exit 1
+fi
 
-for f in *-c.mp4; do
-    printf "file '%s'\n" "$f" >> "$LIST_FILE"
+if ! : > "$list_file"; then
+    printf 'Error: Cannot write "%s".\n' "$list_file" >&2
+    exit 2
+fi
+
+count=0
+
+for f in "${files[@]}"; do
+    if ! printf "file '%s'\n" "$f" >> "$list_file"; then
+        printf 'Error: Failed writing "%s".\n' "$list_file" >&2
+        exit 3
+    fi
+
+    ((count++))
 done
 
-if [[ ! -s "$LIST_FILE" ]]; then
-    echo "Error: No normalized files (*-c.mp4) found." >&2
-    exit 1
-fi
+printf 'Concatenating %d clips into %s...\n' "$count" "$final_output"
 
-mapfile -t count < "$LIST_FILE"
-echo "Concatenating ${#count[@]} clips into $FINAL_OUTPUT..."
-
-if ! ffmpeg -hide_banner -loglevel error -stats \
-    -f concat -safe 0 -i "$LIST_FILE" \
+ffmpeg \
+    -hide_banner \
+    -loglevel error \
+    -stats \
+    -f concat \
+    -safe 0 \
+    -i "$list_file" \
     -c copy \
-    "$FINAL_OUTPUT"; then
-    echo "Error: Concatenation failed!" >&2
-    exit 1
+    "$final_output"
+
+ffmpeg_status=$?
+
+if (( ffmpeg_status != 0 )); then
+    printf 'Error: Concatenation failed.\n' >&2
+    exit 4
 fi
 
-echo "Success: $FINAL_OUTPUT created."
+if ! rm -f -- "$list_file"; then
+    printf 'Warning: Failed to remove "%s".\n' "$list_file" >&2
+fi
+
+printf 'Success: %s created.\n' "$final_output"
