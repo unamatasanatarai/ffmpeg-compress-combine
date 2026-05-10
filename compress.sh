@@ -1,39 +1,73 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
 shopt -s nullglob nocaseglob
 
-readonly V_CODEC="libx265"
-readonly CRF="23"
-readonly PRESET="slow"
+readonly v_codec='libx265'
+readonly crf='23'
+readonly preset='slow'
+
+readonly scale_filter='scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2'
 
 for pfile in *-p.mp4; do
-    rm -fv "$pfile"
+    if [[ -f $pfile ]]; then
+        rm -f -- "$pfile"
+
+        if [[ $? -ne 0 ]]; then
+            printf 'Failed to remove temporary file: %s\n' "$pfile" >&2
+            exit 1
+        fi
+    fi
 done
 
 for file in *.mp4 *.mov; do
-    [[ "$file" =~ -(c|p)\.mp4$ ]] && continue
+    [[ -f $file ]] || continue
 
-    base="${file%.*}"
-    pfile="${base}-p.mp4"
-    cfile="${base}-c.mp4"
+    case $file in
+        *-c.mp4|*-p.mp4)
+            continue
+        ;;
+    esac
 
-    [[ -f "$cfile" ]] && continue
+    base=${file%.*}
+    pfile=${base}-p.mp4
+    cfile=${base}-c.mp4
 
-    echo "=== Processing: $file ==="
+    [[ -f $cfile ]] && continue
 
-    if ffmpeg -hide_banner -loglevel error -stats \
+    printf 'Processing: %s\n' "$file"
+
+    ffmpeg \
+        -hide_banner \
+        -loglevel error \
+        -stats \
         -i "$file" \
         -map 0 \
-        -c:v "$V_CODEC" -crf "$CRF" -preset "$PRESET" \
-        -c:a aac -b:a 128k \
+        -vf "$scale_filter" \
+        -c:v "$v_codec" \
+        -crf "$crf" \
+        -preset "$preset" \
+        -c:a aac \
+        -b:a 128k \
         -movflags +faststart \
-        "$pfile"; then
+        -- \
+        "$pfile"
 
+    if [[ $? -eq 0 ]]; then
         mv -f -- "$pfile" "$cfile"
-        echo "Completed: $cfile"
+
+        if [[ $? -ne 0 ]]; then
+            printf 'Failed to finalize output: %s\n' "$cfile" >&2
+            rm -f -- "$pfile"
+            exit 2
+        fi
+
+        printf 'Completed: %s\n' "$cfile"
     else
-        echo "Failed: $file"
-        rm -f -- "$pfile"
+        printf 'Failed: %s\n' "$file" >&2
+
+        if [[ -f $pfile ]]; then
+            rm -f -- "$pfile"
+        fi
     fi
 done
+
