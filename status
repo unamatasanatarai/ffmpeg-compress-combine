@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# status - counts mp4/MOV files and completed "*-c.mp4" files in a directory
+# Pure Bash version: minimal forks/subshells, flat execution
+
+dir="${1:-.}"
+
+if [[ ! -d "$dir" ]]; then
+    printf "Error: '%s' is not a valid directory\n" "$dir" >&2
+    exit 1
+fi
+
+total=0
+completed=0
+
+shopt -s nullglob
+
+for f in "$dir"/*; do
+    [[ -f "$f" ]] || continue
+
+    name="${f##*/}"
+    lname="${name,,}"
+
+    if [[ "$lname" == *.mp4 || "$lname" == *.mov ]]; then
+        (( total++ ))
+
+        if [[ "$lname" == *-c.mp4 ]]; then
+            (( completed++ ))
+        fi
+    fi
+done
+
+let total_minus_completed=total-completed
+
+if (( total > 0 )); then
+    percent=$(( (completed * 100 + total / 2) / total ))
+else
+    percent=0
+fi
+
+printf "%d / %d (%d%%)\n" "$total_minus_completed" "$completed" "$percent"
