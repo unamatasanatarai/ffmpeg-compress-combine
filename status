@@ -32,9 +32,9 @@ done
 let total_minus_completed=total-completed
 
 if (( total > 0 )); then
-    percent=$(( (completed * 100 + total / 2) / total ))
+    percent=$(( (completed * 100) / total_minus_completed ))
 else
     percent=0
 fi
 
-printf "%d / %d (%d%%)\n" "$total_minus_completed" "$completed" "$percent"
+printf "%d / %d (%d%%)\n" "$completed" "$total_minus_completed" "$percent"
