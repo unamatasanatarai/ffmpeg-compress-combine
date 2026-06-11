@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
+dir=${1-.}
+
 mapfile -t files < <(
-    find . \( -iname '*.mov' -o -iname '*.mp4' \) -type f
+    find "$dir" \( -iname '*.mov' -o -iname '*.mp4' \) -type f
 )
 
 if (( $? != 0 )); then
